@@ -4,10 +4,10 @@ This document explains how to release new versions of FastReport and how the aut
 
 ## Current Release Status ✅
 
-- **Latest Release**: v0.1.0
-- **Status**: Fully functional with automatic updates enabled
-- **Auto-Update Feed**: `https://github.com/RobertRuas/FastReport/releases/latest/download/appcast.xml`
-- **Sparkle EdDSA Key**: Configured and stored securely in GitHub secrets
+- **Repository**: `RobertRuas/FastReport-View` (migrated from `RobertRuas/FastReport`)
+- **Latest Release**: none yet on this repository — push a `v*.*.*` tag to create the first one
+- **Auto-Update Feed**: `https://github.com/RobertRuas/FastReport-View/releases/latest/download/appcast.xml`
+- **Sparkle EdDSA Key**: reused from the previous repository (public key already embedded in `Packaging/Info.plist`); `SPARKLE_PRIVATE_KEY` and `SPARKLE_PUBLIC_KEY` secrets configured on this repository
 
 ## How to Release a New Version
 
@@ -54,10 +54,12 @@ When you push a tag matching `v*.*.*`, the Release workflow automatically:
 
 ### Feed URL
 
-The feed URL in `Packaging/Info.plist` is:
+The feed URL in `Packaging/Info.plist` uses `__OWNER__`/`__REPO__` placeholders filled in at package time from the
+GitHub Actions repository context, so it always resolves to:
 ```
-https://github.com/RobertRuas/FastReport/releases/latest/download/appcast.xml
+https://github.com/<owner>/<repo>/releases/latest/download/appcast.xml
 ```
+Currently that's `https://github.com/RobertRuas/FastReport-View/releases/latest/download/appcast.xml`.
 
 This URL uses GitHub's stable "latest" redirect, which always points to the most recent release. When the workflow creates a new release, it automatically deletes all older releases, so "latest" always resolves to the current version.
 
@@ -141,9 +143,8 @@ GitHub Release (v0.2.0)
 ## Next Steps
 
 1. ✅ **Repository initialized** with release automation
-2. ✅ **Sparkle EdDSA keys** generated and configured
-3. ✅ **GitHub Actions workflow** tested and working
-4. ✅ **First release** (v0.1.0) published successfully
+2. ✅ **Sparkle EdDSA keys** reused from the previous repository and configured as secrets
+3. ⏳ **First release on this repository** — not yet created; push a `v*.*.*` tag to trigger it
 
 When ready for production:
 1. Obtain an Apple Developer ID certificate

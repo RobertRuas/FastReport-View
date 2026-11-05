@@ -51,7 +51,7 @@ jobs:
         run: |
           gh release create "${{ steps.version.outputs.tag }}" \
             dist/*.zip dist/appcast.xml \
-            --title "FastReport ${{ steps.version.outputs.version }}" \
+            --title "FastReport View ${{ steps.version.outputs.version }}" \
             --generate-notes
 
       - name: Keep only the latest release
