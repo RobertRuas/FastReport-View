@@ -4,6 +4,7 @@ import SwiftUI
 final class MainWindowController: NSObject, NSWindowDelegate {
     private let window: NSWindow
     let state = AppState()
+    private var frameDialogMonitor: Any?
 
     override init() {
         window = NSWindow(
@@ -21,6 +22,22 @@ final class MainWindowController: NSObject, NSWindowDelegate {
         window.center()
         window.makeKeyAndOrderFront(nil)
         state.windowOrigin = window.frame.origin
+
+        frameDialogMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self, event.window === self.window,
+                  event.modifierFlags.contains(.command),
+                  event.charactersIgnoringModifiers?.lowercased() == "z"
+            else { return event }
+
+            WindowFrameDialog.show(for: self.window)
+            return nil
+        }
+    }
+
+    deinit {
+        if let frameDialogMonitor {
+            NSEvent.removeMonitor(frameDialogMonitor)
+        }
     }
 
     func windowDidMove(_ notification: Notification) {

@@ -80,8 +80,12 @@ Sources/
 │   │                               and quits when the last window closes.
 │   ├── MainWindowController.swift Creates the classic NSWindow (titled, closable, miniaturizable, resizable,
 │   │                               750x510, min 750x510, centered, zoom/maximize disabled) hosting MainWindowView. Owns AppState.
-│   └── UpdaterController.swift    SPARKLE WRAPPER. @Observable class around SPUStandardUpdaterController; starts on init.
-│                                   Behavior comes from Contents/Info.plist (see Packaging/Info.plist). No-op outside a packaged .app.
+│   ├── UpdaterController.swift    SPARKLE WRAPPER. @Observable class around SPUStandardUpdaterController; starts on init.
+│   │                               Behavior comes from Contents/Info.plist (see Packaging/Info.plist). No-op outside a packaged .app.
+│   └── WindowFrameDialog.swift    AppKit NSAlert-based modal (show(for:)) with width/height/x/y text fields prefilled from the
+│                                   given window's current frame; OK applies window.setFrame(...). Triggered by MainWindowController's
+│                                   local ⌘Z key-down monitor (works from any view inside the main window, since it checks the raw
+│                                   NSEvent rather than SwiftUI focus).
 ├── Models/
 │   ├── AppState.swift              @Observable: openProject, isSettingsPresented, isReportMode, isAutomationMode,
 │   │                               automationIndex, updater, photoLibrary, photoDragState, projectsStore. open(_:) sets
