@@ -37,17 +37,25 @@ FastReport/
                                 Needs repo secrets: SPARKLE_PRIVATE_KEY, SPARKLE_PUBLIC_KEY (see Scripts/generate_sparkle_keys.sh).
 
 Packaging/
-└── Info.plist                 Template Info.plist for the packaged app. Placeholders __VERSION__, __OWNER__, __REPO__,
-                                __SPARKLE_PUBLIC_KEY__ are substituted by Scripts/package_app.sh.
-                                SUFeedURL points to https://github.com/<owner>/<repo>/releases/latest/download/appcast.xml
-                                (GitHub's stable "latest" redirect — always resolves to the one release kept published).
-                                SUEnableAutomaticChecks + SUAutomaticallyUpdate are both true: updates download and
-                                install automatically without prompting.
+├── Info.plist                  Template Info.plist for the packaged app. Placeholders __VERSION__, __OWNER__, __REPO__,
+│                                __SPARKLE_PUBLIC_KEY__ are substituted by Scripts/package_app.sh. CFBundleIconFile =
+│                                AppIcon (see AppIcon.icns below). SUFeedURL points to
+│                                https://github.com/<owner>/<repo>/releases/latest/download/appcast.xml (GitHub's
+│                                stable "latest" redirect — always resolves to the one release kept published).
+│                                SUEnableAutomaticChecks + SUAutomaticallyUpdate are both true: updates download and
+│                                install automatically without prompting (UI for this is custom — see
+│                                Sources/App/SilentUpdateUserDriver.swift).
+└── AppIcon.icns                 App icon (blue rounded-square tile with a white "report" glyph —
+                                 chart.bar.doc.horizontal.fill). Copied into Contents/Resources by package_app.sh.
+                                 Only used in the packaged .app — a plain `swift build` debug binary has no bundle/icon.
 
 Scripts/
 ├── package_app.sh              Builds build/FastReport.app from .build/release, embeds Sparkle.framework into
-│                                Contents/Frameworks, fills in Packaging/Info.plist, ad-hoc codesigns (deep, including
-│                                Sparkle's nested XPC services/Autoupdate/Updater.app), zips to dist/FastReport-<version>.zip.
+│                                Contents/Frameworks, fills in Packaging/Info.plist, copies Packaging/AppIcon.icns into
+│                                Contents/Resources, ad-hoc codesigns (deep, including Sparkle's nested XPC
+│                                services/Autoupdate/Updater.app), zips to dist/FastReport-View-<version>.zip (no spaces
+│                                in the zip filename — GitHub silently rewrites spaces to dots in uploaded release
+│                                asset names, which previously broke Sparkle's download URL).
 ├── build_appcast.sh             Downloads the Sparkle CLI tools matching Package.resolved's pinned version, runs
 │                                generate_appcast against dist/ to sign the zip (EdDSA) and emit dist/appcast.xml.
 │                                Reads the private key from SPARKLE_PRIVATE_KEY (never written to disk outside a temp file).
@@ -80,8 +88,22 @@ Sources/
 │   │                               and quits when the last window closes.
 │   ├── MainWindowController.swift Creates the classic NSWindow (titled, closable, miniaturizable, resizable,
 │   │                               750x510, min 750x510, centered, zoom/maximize disabled) hosting MainWindowView. Owns AppState.
-│   ├── UpdaterController.swift    SPARKLE WRAPPER. @Observable class around SPUStandardUpdaterController; starts on init.
-│   │                               Behavior comes from Contents/Info.plist (see Packaging/Info.plist). No-op outside a packaged .app.
+│   ├── UpdaterController.swift    SPARKLE WRAPPER. @Observable class owning a raw SPUUpdater (not SPUStandardUpdaterController)
+│   │                               paired with SilentUpdateUserDriver as its custom SPUUserDriver, so the whole update UI is our
+│   │                               own. starts the updater on init when running from a packaged .app. Behavior (feed URL, auto
+│   │                               check/install, icon) comes from Contents/Info.plist (see Packaging/Info.plist). No-op outside
+│   │                               a packaged .app.
+│   ├── SilentUpdateUserDriver.swift  Custom SPUUserDriver (NSObject). Auto-accepts permission requests and found updates (no
+│   │                               prompts) so checking + downloading + installing is fully silent/automatic. Drives
+│   │                               UpdateProgressWindow with real download/extraction progress (0–90% download, 90–100%
+│   │                               extraction) and enforces a 5s minimum-visible duration from showDownloadInitiated before
+│   │                               replying .install at showReady(toInstallAndRelaunch:) — so a fast update still shows the bar
+│   │                               for a full 5s before the app restarts. Only shows an NSAlert for "no update"/error outcomes,
+│   │                               and only when the check was user-initiated (showUserInitiatedUpdateCheck was called) —
+│   │                               background/startup checks fail or no-op silently.
+│   ├── UpdateProgressWindow.swift  Small non-activating NSPanel (300×84, floating level) with a status label + determinate
+│   │                               NSProgressIndicator. show()/close()/setStatus(_:)/setIndeterminate(_:)/setProgress(_:) are
+│   │                               the only API; owned and driven entirely by SilentUpdateUserDriver.
 │   └── WindowFrameDialog.swift    AppKit NSAlert-based modal (show(for:)) with width/height/x/y text fields prefilled from the
 │                                   given window's current frame; OK applies window.setFrame(...). Triggered by MainWindowController's
 │                                   local ⌘Z key-down monitor (works from any view inside the main window, since it checks the raw

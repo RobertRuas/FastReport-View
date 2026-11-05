@@ -40,12 +40,15 @@ sed \
     -e "s|__SPARKLE_PUBLIC_KEY__|$PUBLIC_KEY|g" \
     Packaging/Info.plist > "$APP_BUNDLE/Contents/Info.plist"
 
+cp Packaging/AppIcon.icns "$APP_BUNDLE/Contents/Resources/AppIcon.icns"
+
 find "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework" \
     \( -name "*.xpc" -o -name "Autoupdate" -o -name "Updater.app" \) \
     -exec codesign --force --sign - {} \;
 codesign --force --deep --sign - "$APP_BUNDLE/Contents/Frameworks/Sparkle.framework"
 codesign --force --deep --sign - "$APP_BUNDLE"
 
-(cd "$BUILD_DIR" && ditto -c -k --sequesterRsrc --keepParent "$APP_NAME.app" "../$DIST_DIR/$APP_NAME-$VERSION.zip")
+ZIP_NAME="FastReport-View-$VERSION.zip"
+(cd "$BUILD_DIR" && ditto -c -k --sequesterRsrc --keepParent "$APP_NAME.app" "../$DIST_DIR/$ZIP_NAME")
 
-echo "Packaged $APP_BUNDLE -> $DIST_DIR/$APP_NAME-$VERSION.zip"
+echo "Packaged $APP_BUNDLE -> $DIST_DIR/$ZIP_NAME"
