@@ -11,16 +11,16 @@ struct MainWindowView: View {
                     if let project = state.openProject {
                         StatusBarItem(icon: "folder", project.displayName)
                         StatusBarItem(icon: "photo.on.rectangle", "\(photoCount) fotos")
-                    } else {
-                        StatusBarItem(
-                            icon: "arrow.up.left.and.arrow.down.right",
-                            "\(Int((proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing).rounded())) × \(Int((proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom).rounded())) px"
-                        )
-                        StatusBarItem(
-                            icon: "location",
-                            "\(Int(state.windowOrigin.x.rounded())), \(Int(state.windowOrigin.y.rounded()))"
-                        )
                     }
+                    Spacer(minLength: 0)
+                    StatusBarItem(
+                        icon: "arrow.up.left.and.arrow.down.right",
+                        "\(Int((proxy.size.width + proxy.safeAreaInsets.leading + proxy.safeAreaInsets.trailing).rounded())) × \(Int((proxy.size.height + proxy.safeAreaInsets.top + proxy.safeAreaInsets.bottom).rounded())) px"
+                    )
+                    StatusBarItem(
+                        icon: "location",
+                        "\(Int(state.windowOrigin.x.rounded())), \(Int(state.windowOrigin.y.rounded()))"
+                    )
                 }
             }
         }

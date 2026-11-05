@@ -12,7 +12,6 @@ struct StatusBarView<Content: View>: View {
             Divider()
             HStack(spacing: 0) {
                 content
-                Spacer(minLength: 0)
             }
             .font(.system(size: 11))
             .foregroundStyle(.secondary)
