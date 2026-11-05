@@ -17,6 +17,12 @@ struct ProjectListView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         .background(.background)
+        .sheet(isPresented: Binding(
+            get: { state.isSettingsPresented },
+            set: { state.isSettingsPresented = $0 }
+        )) {
+            SettingsView(state: state, onClose: { state.isSettingsPresented = false })
+        }
     }
 
     private var toolbar: some View {
@@ -24,6 +30,29 @@ struct ProjectListView: View {
             Text("Projetos")
                 .font(.title3.weight(.semibold))
             Spacer()
+
+            Button {
+                FeedbackMailer.compose()
+            } label: {
+                Image(systemName: "ladybug")
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(IconActionButtonStyle())
+            .help("Reportar um problema ou enviar feedback")
+
+            Button {
+                state.isSettingsPresented = true
+            } label: {
+                Image(systemName: "gearshape")
+                    .frame(width: 22, height: 22)
+            }
+            .buttonStyle(IconActionButtonStyle())
+            .help("Configurações")
+
+            Divider()
+                .frame(height: 16)
+                .padding(.horizontal, 4)
+
             Button("Importar projeto (.zip)…", action: importProject)
         }
         .padding(12)

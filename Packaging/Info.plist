@@ -7,7 +7,7 @@
     <key>CFBundleDisplayName</key>
     <string>FastReport View</string>
     <key>CFBundleExecutable</key>
-    <string>FastReport</string>
+    <string>FastReport View</string>
     <key>CFBundleIdentifier</key>
     <string>dev.robertruas.FastReport</string>
     <key>CFBundlePackageType</key>

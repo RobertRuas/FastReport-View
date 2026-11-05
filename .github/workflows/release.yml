@@ -32,7 +32,7 @@ jobs:
       - name: Build release binary
         run: swift build -c release
 
-      - name: Package FastReport.app
+      - name: Package FastReport View.app
         env:
           APP_VERSION: ${{ steps.version.outputs.version }}
           APP_OWNER: ${{ github.repository_owner }}

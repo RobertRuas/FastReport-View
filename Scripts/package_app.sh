@@ -1,5 +1,5 @@
 #!/bin/bash
-# Builds FastReport.app from the release binary and zips it for distribution.
+# Builds "FastReport View.app" from the release binary and zips it for distribution.
 # Expects `swift build -c release` to have already run.
 # Env vars: APP_VERSION (required), APP_OWNER, APP_REPO (GitHub owner/repo for the Sparkle feed URL),
 #           SPARKLE_PUBLIC_KEY (EdDSA public key for Sparkle update verification)
@@ -8,7 +8,7 @@ set -euo pipefail
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$PROJECT_DIR"
 
-APP_NAME="FastReport"
+APP_NAME="FastReport View"
 VERSION="${APP_VERSION:?APP_VERSION must be set}"
 OWNER="${APP_OWNER:-__OWNER__}"
 REPO="${APP_REPO:-__REPO__}"

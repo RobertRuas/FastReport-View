@@ -1,10 +1,10 @@
 #!/bin/bash
-# Hot reload for FastReport — watches Sources/ and rebuilds+relaunches on change
+# Hot reload for FastReport View — watches Sources/ and rebuilds+relaunches on change
 
 PROJECT_DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$PROJECT_DIR"
 
-APP_NAME="FastReport"
+APP_NAME="FastReport View"
 PID=""
 WATCH_PID=""
 
@@ -41,7 +41,7 @@ build_and_run() {
     echo "⟳ Building..."
     if swift build 2>&1; then
         echo "✓ Running $APP_NAME"
-        .build/debug/$APP_NAME &
+        ".build/debug/$APP_NAME" &
         PID=$!
     else
         echo "✗ Build failed"
@@ -57,7 +57,7 @@ run_only() {
     fi
 
     echo "✓ Running $APP_NAME"
-    .build/debug/$APP_NAME &
+    ".build/debug/$APP_NAME" &
     PID=$!
 }
 
@@ -71,7 +71,7 @@ restart_app() {
     echo "⟳ Building..."
     if swift build 2>&1; then
         echo "✓ Running $APP_NAME"
-        .build/debug/$APP_NAME &
+        ".build/debug/$APP_NAME" &
         PID=$!
     else
         echo "✗ Build failed"
@@ -82,7 +82,7 @@ restart_app() {
 show_menu() {
     echo ""
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "  FastReport Dev Menu"
+    echo "  FastReport View Dev Menu"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo "  [B] Build and run"
     echo "  [R] Restart app"
@@ -146,7 +146,7 @@ watch_files() {
             echo "⟳ Building..."
             if swift build 2>&1; then
                 echo "✓ Running $APP_NAME"
-                .build/debug/$APP_NAME &
+                ".build/debug/$APP_NAME" &
                 PID=$!
             else
                 echo "✗ Build failed"
@@ -156,7 +156,7 @@ watch_files() {
     done
 }
 
-echo "=== FastReport Dev Server ==="
+echo "=== FastReport View Dev Server ==="
 echo ""
 
 kill_stale_instances

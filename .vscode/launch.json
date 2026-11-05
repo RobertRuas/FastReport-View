@@ -5,20 +5,20 @@
             "request": "launch",
             "args": [],
             "cwd": "${workspaceFolder:FastReport}",
-            "name": "Debug FastReport",
-            "target": "FastReport",
+            "name": "Debug FastReport View",
+            "target": "FastReport View",
             "configuration": "debug",
-            "preLaunchTask": "swift: Build Debug FastReport"
+            "preLaunchTask": "swift: Build Debug FastReport View"
         },
         {
             "type": "swift",
             "request": "launch",
             "args": [],
             "cwd": "${workspaceFolder:FastReport}",
-            "name": "Release FastReport",
-            "target": "FastReport",
+            "name": "Release FastReport View",
+            "target": "FastReport View",
             "configuration": "release",
-            "preLaunchTask": "swift: Build Release FastReport"
+            "preLaunchTask": "swift: Build Release FastReport View"
         }
     ]
 }

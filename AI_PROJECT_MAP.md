@@ -4,7 +4,9 @@
 
 ## Project Overview
 
-- **What**: Native macOS app base — classic window with sidebar navigation (Home + Settings)
+- **What**: Native macOS app base ("FastReport View") — classic window, no sidebar. Home (project list) is the
+  only top-level screen; Settings opens as a sheet via a gear icon in the Home toolbar, next to a bug icon that
+  composes a feedback email.
 - **Stack**: Swift 6.4, SwiftUI + AppKit hybrid, Swift Package Manager (no Xcode project)
 - **Target**: macOS 26+
 - **Language mode**: Swift 5 (SwiftUIMacros plugin is NOT available — `@State`, `@Binding`, `@Environment` cannot be used)
@@ -17,7 +19,7 @@
 
 ```
 FastReport/
-├── Package.swift              SPM manifest. swift-tools-version:6.2, target macOS .v26, language mode .v5. Single executable target "FastReport" with path "Sources". Depends on sparkle-project/Sparkle (from 2.6.4). linkerSettings add -rpath @executable_path and @executable_path/../Frameworks so the Sparkle.framework resolves both from .build/debug (local dev) and from Contents/Frameworks (packaged .app).
+├── Package.swift              SPM manifest. swift-tools-version:6.2, target macOS .v26, language mode .v5. Single executable target "FastReport View" (with a literal space — the built binary is named `FastReport View`) with path "Sources". Depends on sparkle-project/Sparkle (from 2.6.4). linkerSettings add -rpath @executable_path and @executable_path/../Frameworks so the Sparkle.framework resolves both from .build/debug (local dev) and from Contents/Frameworks (packaged .app).
 ├── Package.resolved           Pins the resolved Sparkle version. Scripts/build_appcast.sh and Scripts/generate_sparkle_keys.sh read this to download matching Sparkle CLI tools.
 ├── dev.sh                     Hot reload script. On start, kills any already-running FastReport instance (even from a previous/untracked session) before the first build. Uses fswatch to watch Sources/ recursively. On file change: kills running app → swift build → relaunch. Run with: bash dev.sh
 ├── .gitignore                 Ignores .build/, .swiftpm/, xcodeproj, DerivedData, .DS_Store, build/, dist/, .sparkle-tools/
@@ -81,13 +83,12 @@ Sources/
 │   └── UpdaterController.swift    SPARKLE WRAPPER. @Observable class around SPUStandardUpdaterController; starts on init.
 │                                   Behavior comes from Contents/Info.plist (see Packaging/Info.plist). No-op outside a packaged .app.
 ├── Models/
-│   ├── AppSection.swift            Sidebar entries (enum: home, settings — id, title, icon). Add a case to add a sidebar row.
-│   ├── AppState.swift              @Observable: selectedSection, openProject, isReportMode, isAutomationMode, automationIndex,
-│   │                               updater, photoLibrary, photoDragState, projectsStore. open(_:) sets openProject and loads its
-│   │                               photos (via ProjectPhotosLoader) into photoLibrary, resets automationIndex; closeProject()
-│   │                               clears openProject/photoLibrary/isReportMode/isAutomationMode/automationIndex.
-│   │                               advanceAutomation()/retreatAutomation() clamp automationIndex to [0, lastGroup]. Add app-wide
-│   │                               state/features here.
+│   ├── AppState.swift              @Observable: openProject, isSettingsPresented, isReportMode, isAutomationMode,
+│   │                               automationIndex, updater, photoLibrary, photoDragState, projectsStore. open(_:) sets
+│   │                               openProject and loads its photos (via ProjectPhotosLoader) into photoLibrary, resets
+│   │                               automationIndex; closeProject() clears openProject/photoLibrary/isReportMode/
+│   │                               isAutomationMode/automationIndex. advanceAutomation()/retreatAutomation() clamp
+│   │                               automationIndex to [0, lastGroup]. Add app-wide state/features here.
 │   ├── MapSlot.swift                One report-map slot: folder, optional group (nested subfolder, e.g. "C12"), isTrash, isInbox.
 │   │                               pathComponents/folderURL(in:) resolve where that slot's photos live on disk.
 │   ├── Photo.swift                 Identifiable photo (id = stable inode-based ID via Photo.stableID(for:), url).
@@ -124,14 +125,16 @@ Sources/
 │   │                               non-empty displaySlot folder, in map order — this is what makes a reopened project show
 │   │                               one row per directory, already organized, exactly like the old app's Revisão grid. Falls
 │   │                               back to a single flat group scanning the project folder if the mapId isn't in MapCatalog.
-│   └── ThumbnailCache.swift        @MainActor NSCache<NSString, NSImage> wrapper. image(for:maxPixelSize:) downsizes via
-│                                   ImageIO (CGImageSourceCreateThumbnailAtIndex), cached by path + pixel size.
+│   ├── ThumbnailCache.swift        @MainActor NSCache<NSString, NSImage> wrapper. image(for:maxPixelSize:) downsizes via
+│   │                               ImageIO (CGImageSourceCreateThumbnailAtIndex), cached by path + pixel size.
+│   └── FeedbackMailer.swift        compose() builds a mailto: URL to 92ruas@gmail.com with a prefilled subject/body
+│                                   template (includes CFBundleShortVersionString) and opens it via NSWorkspace.shared.open —
+│                                   used by the bug icon in ProjectListView's toolbar and the feedback button in SettingsView.
 └── Views/
     ├── MainWindowView.swift       Wraps everything in a GeometryReader: `content` above + StatusBarView below. `content` is
-    │                               ProjectView (full window, no sidebar) when state.openProject is set; otherwise the
-    │                               NavigationSplitView (sidebar List of AppSection bound to state.selectedSection; detail shows
-    │                               HomeView(state:) for .home, SettingsView for .settings, empty otherwise). StatusBarView shows
-    │                               project name + photo count when a project is open, else the window size ("W × H px").
+    │                               ProjectView (full window) when state.openProject is set, else HomeView(state:) directly —
+    │                               no sidebar. StatusBarView shows project name + photo count when a project is open, else
+    │                               the window size ("W × H px") and origin.
     ├── Components/
     │   ├── StatusBarView.swift     Classic bottom status bar. StatusBarView { content } = top divider + 22pt bar (.bar material,
     │   │                           11pt secondary text); StatusBarItem(icon:, text) = one cell with a trailing vertical divider.
@@ -152,8 +155,10 @@ Sources/
     │   └── HomeView.swift          HOME SCREEN. Takes AppState. Just renders ProjectListView — routing between the list and an
     │                               open project happens one level up, in MainWindowView, so the sidebar disappears too.
     ├── Projects/
-    │   ├── ProjectListView.swift   Project list screen. Toolbar "Importar projeto (.zip)…" opens NSOpenPanel filtered to
-    │   │                           .zip, runs ProjectImporter.importZip(at:into:), then state.open(_:) the result (NSAlert on
+    │   ├── ProjectListView.swift   Project list screen — the app's Home content. Toolbar: bug icon (FeedbackMailer.compose()),
+    │   │                           gear icon (sets state.isSettingsPresented, which this view's .sheet presents as
+    │   │                           SettingsView), then "Importar projeto (.zip)…" which opens NSOpenPanel filtered to .zip,
+    │   │                           runs ProjectImporter.importZip(at:into:), then state.open(_:) the result (NSAlert on
     │   │                           failure). Tapping a row also calls state.open(_:). Empty state when projectsStore is empty.
     │   └── ProjectView.swift       One project's screen, shown full-window (see MainWindowView): back-chevron toolbar
     │                               (state.closeProject()) + project.displayName + reportModeToggle (toggles state.isReportMode,
@@ -180,8 +185,11 @@ Sources/
     │   └── PhotoThumbnailView.swift  One photo cell: NSImage via ThumbnailCache, rounded background, overlaid with
     │                               PhotoDragSourceView(isReportMode:) for the mode-gated reorder/export gesture.
     └── Settings/
-        └── SettingsView.swift      SETTINGS SCREEN. Single "Atualizações" card: current version (CFBundleShortVersionString) +
-                                     "Verificar atualizações" button (state.updater.checkForUpdates()).
+        └── SettingsView.swift      SETTINGS SCREEN, presented as a sheet from ProjectListView (onClose sets
+                                     state.isSettingsPresented = false). Own toolbar with an "xmark" close button. Body:
+                                     "Atualizações" card (version, "Verificar atualizações", last check, auto-check/auto-install
+                                     status — no feed URL shown) + "Créditos" section (Robert Ruas, 92ruas@gmail.com, and a
+                                     "Enviar feedback" button calling FeedbackMailer.compose()).
 ```
 
 ---
@@ -207,9 +215,9 @@ Sources/
 ## Build & Run
 
 ```bash
-swift build                    # compile
-.build/debug/FastReport        # run directly
-bash dev.sh                    # hot reload (watch + rebuild + relaunch)
+swift build                      # compile
+".build/debug/FastReport View"   # run directly (quote it — the binary name has a space)
+bash dev.sh                      # hot reload (watch + rebuild + relaunch)
 
 # Release packaging (normally done by .github/workflows/release.yml on a tag push):
 swift build -c release

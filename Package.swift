@@ -2,14 +2,14 @@
 import PackageDescription
 
 let package = Package(
-    name: "FastReport",
+    name: "FastReport View",
     platforms: [.macOS(.v26)],
     dependencies: [
         .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.4")
     ],
     targets: [
         .executableTarget(
-            name: "FastReport",
+            name: "FastReport View",
             dependencies: [
                 .product(name: "Sparkle", package: "Sparkle")
             ],

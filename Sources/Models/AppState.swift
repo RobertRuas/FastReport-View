@@ -2,8 +2,8 @@ import SwiftUI
 
 @Observable
 final class AppState {
-    var selectedSection: AppSection? = .home
     var openProject: Project?
+    var isSettingsPresented = false
     var isReportMode = false
     var isAutomationMode = false
     var automationIndex = 0
