@@ -23,6 +23,12 @@ struct MainWindowView: View {
                     )
                 }
             }
+            .sheet(item: Binding(
+                get: { state.previewPhoto },
+                set: { state.previewPhoto = $0 }
+            )) { photo in
+                PhotoPreviewView(photo: photo) { state.previewPhoto = nil }
+            }
         }
     }
 

@@ -14,8 +14,10 @@ struct ProjectView: View {
                 isReportMode: state.isReportMode,
                 isAutomationMode: state.isReportMode && state.isAutomationMode,
                 automationIndex: state.automationIndex,
+                thumbnailSize: state.thumbnailSize,
                 onAdvanceAutomation: { state.advanceAutomation() },
-                onRetreatAutomation: { state.retreatAutomation() }
+                onRetreatAutomation: { state.retreatAutomation() },
+                onOpenPhoto: { state.previewPhoto = $0 }
             )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -34,12 +36,35 @@ struct ProjectView: View {
             Text(project.displayName)
                 .font(.title3.weight(.semibold))
             Spacer()
+            thumbnailSizeControls
             if state.isReportMode {
                 automationModeToggle
             }
             reportModeToggle
         }
         .padding(12)
+    }
+
+    private var thumbnailSizeControls: some View {
+        HStack(spacing: 2) {
+            Button {
+                withAnimation(.easeOut(duration: 0.15)) { state.decreaseThumbnailSize() }
+            } label: {
+                Image(systemName: "minus.magnifyingglass")
+            }
+            .buttonStyle(IconActionButtonStyle())
+            .disabled(!state.canDecreaseThumbnailSize)
+            .help("Diminuir miniaturas")
+
+            Button {
+                withAnimation(.easeOut(duration: 0.15)) { state.increaseThumbnailSize() }
+            } label: {
+                Image(systemName: "plus.magnifyingglass")
+            }
+            .buttonStyle(IconActionButtonStyle())
+            .disabled(!state.canIncreaseThumbnailSize)
+            .help("Aumentar miniaturas")
+        }
     }
 
     private var reportModeToggle: some View {

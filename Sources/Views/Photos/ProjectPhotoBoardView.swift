@@ -7,8 +7,10 @@ struct ProjectPhotoBoardView: View {
     let isReportMode: Bool
     let isAutomationMode: Bool
     let automationIndex: Int
+    let thumbnailSize: CGFloat
     let onAdvanceAutomation: () -> Void
     let onRetreatAutomation: () -> Void
+    let onOpenPhoto: (Photo) -> Void
 
     var body: some View {
         if isAutomationMode {
@@ -17,7 +19,7 @@ struct ProjectPhotoBoardView: View {
             ScrollView(.vertical) {
                 VStack(alignment: .leading, spacing: 18) {
                     ForEach(library.groups) { group in
-                        PhotoGroupCard(group: group, library: library, dragState: dragState, isReportMode: isReportMode)
+                        PhotoGroupCard(group: group, library: library, dragState: dragState, isReportMode: isReportMode, thumbnailSize: thumbnailSize, onOpenPhoto: onOpenPhoto)
                     }
                 }
                 .padding(20)
@@ -31,7 +33,7 @@ struct ProjectPhotoBoardView: View {
     private var automationBody: some View {
         VStack(alignment: .leading, spacing: 16) {
             if let group = currentGroup {
-                PhotoGroupCard(group: group, library: library, dragState: dragState, isReportMode: isReportMode)
+                PhotoGroupCard(group: group, library: library, dragState: dragState, isReportMode: isReportMode, thumbnailSize: thumbnailSize, onOpenPhoto: onOpenPhoto)
                     .padding(20)
                     .id(group.id)
             } else {
@@ -106,6 +108,8 @@ private struct PhotoGroupCard: View {
     let library: PhotoLibrary
     let dragState: PhotoGridDragState
     let isReportMode: Bool
+    let thumbnailSize: CGFloat
+    let onOpenPhoto: (Photo) -> Void
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -116,7 +120,7 @@ private struct PhotoGroupCard: View {
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
             }
-            PhotoGroupStripView(group: group, library: library, dragState: dragState, isReportMode: isReportMode)
+            PhotoGroupStripView(group: group, library: library, dragState: dragState, isReportMode: isReportMode, thumbnailSize: thumbnailSize, onOpenPhoto: onOpenPhoto)
         }
         .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)

@@ -8,6 +8,11 @@ final class AppState {
     var isAutomationMode = false
     var automationIndex = 0
     var windowOrigin: CGPoint = .zero
+    var previewPhoto: Photo?
+    var thumbnailSize: CGFloat = 104
+
+    private let thumbnailSizeRange: ClosedRange<CGFloat> = 72...220
+    private let thumbnailSizeStep: CGFloat = 24
 
     @ObservationIgnored
     let updater = UpdaterController()
@@ -43,5 +48,16 @@ final class AppState {
 
     func retreatAutomation() {
         automationIndex = max(automationIndex - 1, 0)
+    }
+
+    var canIncreaseThumbnailSize: Bool { thumbnailSize < thumbnailSizeRange.upperBound }
+    var canDecreaseThumbnailSize: Bool { thumbnailSize > thumbnailSizeRange.lowerBound }
+
+    func increaseThumbnailSize() {
+        thumbnailSize = min(thumbnailSize + thumbnailSizeStep, thumbnailSizeRange.upperBound)
+    }
+
+    func decreaseThumbnailSize() {
+        thumbnailSize = max(thumbnailSize - thumbnailSizeStep, thumbnailSizeRange.lowerBound)
     }
 }

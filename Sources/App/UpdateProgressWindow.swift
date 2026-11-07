@@ -2,51 +2,83 @@ import AppKit
 
 final class UpdateProgressWindow {
     private let panel: NSPanel
+    private let iconView: NSImageView
     private let statusLabel: NSTextField
     private let progressBar: NSProgressIndicator
 
     init() {
+        let size = NSSize(width: 320, height: 148)
         panel = NSPanel(
-            contentRect: NSRect(x: 0, y: 0, width: 300, height: 84),
-            styleMask: [.titled, .nonactivatingPanel, .utilityWindow],
+            contentRect: NSRect(origin: .zero, size: size),
+            styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: false
         )
-        panel.titleVisibility = .hidden
-        panel.titlebarAppearsTransparent = true
+        panel.isOpaque = false
+        panel.backgroundColor = .clear
+        panel.hasShadow = true
         panel.isMovableByWindowBackground = true
         panel.level = .floating
         panel.isReleasedWhenClosed = false
-        panel.standardWindowButton(.closeButton)?.isHidden = true
-        panel.standardWindowButton(.miniaturizeButton)?.isHidden = true
-        panel.standardWindowButton(.zoomButton)?.isHidden = true
+        panel.hidesOnDeactivate = false
+
+        let background = NSVisualEffectView(frame: NSRect(origin: .zero, size: size))
+        background.material = .hudWindow
+        background.blendingMode = .behindWindow
+        background.state = .active
+        background.wantsLayer = true
+        background.layer?.cornerRadius = 16
+        background.layer?.masksToBounds = true
+
+        iconView = NSImageView(frame: NSRect(x: (size.width - 52) / 2, y: 78, width: 52, height: 52))
+        iconView.image = NSApp.applicationIconImage
+        iconView.imageScaling = .scaleProportionallyUpOrDown
 
         statusLabel = NSTextField(labelWithString: "A verificar atualizações…")
-        statusLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        statusLabel.font = .systemFont(ofSize: 13, weight: .medium)
         statusLabel.alignment = .center
-        statusLabel.frame = NSRect(x: 16, y: 44, width: 268, height: 18)
+        statusLabel.textColor = .labelColor
+        statusLabel.frame = NSRect(x: 20, y: 48, width: size.width - 40, height: 20)
 
-        progressBar = NSProgressIndicator(frame: NSRect(x: 16, y: 20, width: 268, height: 14))
+        progressBar = NSProgressIndicator(frame: NSRect(x: 40, y: 28, width: size.width - 80, height: 6))
         progressBar.style = .bar
         progressBar.isIndeterminate = true
         progressBar.minValue = 0
         progressBar.maxValue = 1
         progressBar.startAnimation(nil)
 
-        let content = NSView(frame: NSRect(x: 0, y: 0, width: 300, height: 84))
-        content.addSubview(statusLabel)
-        content.addSubview(progressBar)
-        panel.contentView = content
+        background.addSubview(iconView)
+        background.addSubview(statusLabel)
+        background.addSubview(progressBar)
+        panel.contentView = background
         panel.center()
     }
 
     func show() {
+        panel.alphaValue = 0
         panel.orderFrontRegardless()
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.25
+            context.timingFunction = CAMediaTimingFunction(name: .easeOut)
+            panel.animator().alphaValue = 1
+        }
     }
 
     func close() {
-        progressBar.stopAnimation(nil)
-        panel.orderOut(nil)
+        fadeOutAndClose()
+    }
+
+    func fadeOutAndClose() {
+        let panel = self.panel
+        let bar = self.progressBar
+        NSAnimationContext.runAnimationGroup({ context in
+            context.duration = 0.3
+            context.timingFunction = CAMediaTimingFunction(name: .easeIn)
+            panel.animator().alphaValue = 0
+        }, completionHandler: {
+            bar.stopAnimation(nil)
+            panel.orderOut(nil)
+        })
     }
 
     func setStatus(_ text: String) {
@@ -64,6 +96,11 @@ final class UpdateProgressWindow {
     }
 
     func setProgress(_ fraction: Double) {
-        progressBar.doubleValue = min(max(fraction, 0), 1)
+        let clamped = min(max(fraction, 0), 1)
+        NSAnimationContext.runAnimationGroup { context in
+            context.duration = 0.25
+            context.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            progressBar.animator().doubleValue = clamped
+        }
     }
 }

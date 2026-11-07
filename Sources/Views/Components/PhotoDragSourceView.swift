@@ -87,7 +87,7 @@ final class PhotoDragNSView: NSView, NSDraggingSource {
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard !isDraggingOut, let coordinator, let mouseDownEvent else { return }
+        guard !isDraggingOut, let coordinator, mouseDownEvent != nil else { return }
         let current = NSEvent.mouseLocation
         let translationX = current.x - mouseDownScreenPoint.x
         let translationY = current.y - mouseDownScreenPoint.y
@@ -104,7 +104,7 @@ final class PhotoDragNSView: NSView, NSDraggingSource {
         let writer = PhotoPasteboardWriter(url: coordinator.url)
         let item = NSDraggingItem(pasteboardWriter: writer)
         item.setDraggingFrame(bounds, contents: ThumbnailCache.shared.image(for: coordinator.url, maxPixelSize: 240))
-        beginDraggingSession(with: [item], event: mouseDownEvent, source: self)
+        beginDraggingSession(with: [item], event: event, source: self)
     }
 
     override func mouseUp(with event: NSEvent) {

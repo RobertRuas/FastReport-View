@@ -32,6 +32,8 @@ final class MainWindowController: NSObject, NSWindowDelegate {
             WindowFrameDialog.show(for: self.window)
             return nil
         }
+
+        state.updater.checkForUpdatesAtStartup()
     }
 
     deinit {

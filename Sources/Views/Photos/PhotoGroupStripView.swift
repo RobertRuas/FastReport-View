@@ -8,8 +8,9 @@ struct PhotoGroupStripView: View {
     let library: PhotoLibrary
     let dragState: PhotoGridDragState
     let isReportMode: Bool
+    let thumbnailSize: CGFloat
+    let onOpenPhoto: (Photo) -> Void
 
-    private let thumbnailSize: CGFloat = 104
     private let spacing: CGFloat = 10
     private var cellWidth: CGFloat { thumbnailSize + spacing }
 
@@ -80,7 +81,7 @@ struct PhotoGroupStripView: View {
                     dragState.reset()
                 }
             },
-            onClick: {}
+            onClick: { onOpenPhoto(photo) }
         )
         .shadow(color: isDragged ? Color.black.opacity(0.22) : .clear, radius: isDragged ? 8 : 0, y: isDragged ? 3 : 0)
         .scaleEffect(isDragged ? 1.05 : 1)

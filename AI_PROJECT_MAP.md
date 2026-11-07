@@ -88,29 +88,43 @@ Sources/
 │   │                               and quits when the last window closes.
 │   ├── MainWindowController.swift Creates the classic NSWindow (titled, closable, miniaturizable, resizable,
 │   │                               750x510, min 750x510, centered, zoom/maximize disabled) hosting MainWindowView. Owns AppState.
+│   │                               On init, after showing the window, calls state.updater.checkForUpdatesAtStartup() (no-op
+│   │                               outside a packaged .app).
 │   ├── UpdaterController.swift    SPARKLE WRAPPER. @Observable class owning a raw SPUUpdater (not SPUStandardUpdaterController)
 │   │                               paired with SilentUpdateUserDriver as its custom SPUUserDriver, so the whole update UI is our
 │   │                               own. starts the updater on init when running from a packaged .app. Behavior (feed URL, auto
 │   │                               check/install, icon) comes from Contents/Info.plist (see Packaging/Info.plist). No-op outside
 │   │                               a packaged .app.
 │   ├── SilentUpdateUserDriver.swift  Custom SPUUserDriver (NSObject). Auto-accepts permission requests and found updates (no
-│   │                               prompts) so checking + downloading + installing is fully silent/automatic. Drives
+│   │                               prompts) so checking + downloading + installing is fully silent/automatic. A startup check
+│   │                               (beginStartupCheck(), set by UpdaterController.checkForUpdatesAtStartup()) shows the
+│   │                               UpdateProgressWindow with "A verificar atualizações…" while checking (kept visible for a
+│   │                               minimum of 2s so it reads as intentional): if no update, it auto-dismisses after briefly
+│   │                               showing "Já está na versão mais recente" (~1.2s, no NSAlert); if an
+│   │                               update is found it flows straight into the silent download/install using the same window.
+│   │                               Manual checks (Settings button) keep the old behavior (NSAlert on no-update/error). Drives
 │   │                               UpdateProgressWindow with real download/extraction progress (0–90% download, 90–100%
 │   │                               extraction) and enforces a 5s minimum-visible duration from showDownloadInitiated before
 │   │                               replying .install at showReady(toInstallAndRelaunch:) — so a fast update still shows the bar
 │   │                               for a full 5s before the app restarts. Only shows an NSAlert for "no update"/error outcomes,
 │   │                               and only when the check was user-initiated (showUserInitiatedUpdateCheck was called) —
 │   │                               background/startup checks fail or no-op silently.
-│   ├── UpdateProgressWindow.swift  Small non-activating NSPanel (300×84, floating level) with a status label + determinate
-│   │                               NSProgressIndicator. show()/close()/setStatus(_:)/setIndeterminate(_:)/setProgress(_:) are
-│   │                               the only API; owned and driven entirely by SilentUpdateUserDriver.
+│   ├── UpdateProgressWindow.swift  Elegant borderless HUD NSPanel (320×148, floating, .hudWindow NSVisualEffectView with 16pt
+│   │                               rounded corners) showing the app icon, a status label + a slim NSProgressIndicator. Fades
+│   │                               in on show() and out on close()/fadeOutAndClose() (alphaValue animation; the fade captures
+│   │                               the panel/bar so it finishes even after the owner drops its reference); setProgress animates
+│   │                               the bar. API: show()/close()/fadeOutAndClose()/setStatus(_:)/setIndeterminate(_:)/
+│   │                               setProgress(_:); owned and driven entirely by SilentUpdateUserDriver.
 │   └── WindowFrameDialog.swift    AppKit NSAlert-based modal (show(for:)) with width/height/x/y text fields prefilled from the
 │                                   given window's current frame; OK applies window.setFrame(...). Triggered by MainWindowController's
 │                                   local ⌘Z key-down monitor (works from any view inside the main window, since it checks the raw
 │                                   NSEvent rather than SwiftUI focus).
 ├── Models/
 │   ├── AppState.swift              @Observable: openProject, isSettingsPresented, isReportMode, isAutomationMode,
-│   │                               automationIndex, updater, photoLibrary, photoDragState, projectsStore. open(_:) sets
+│   │                               automationIndex, previewPhoto (clicked photo shown in PhotoPreviewView modal),
+│   │                               thumbnailSize (grid thumb size, 72–220, ±24 via increase/decrease + can*ThumbnailSize
+│   │                               guards; shown via ProjectView's zoom buttons), updater, photoLibrary, photoDragState,
+│   │                               projectsStore. open(_:) sets
 │   │                               openProject and loads its photos (via ProjectPhotosLoader) into photoLibrary, resets
 │   │                               automationIndex; closeProject() clears openProject/photoLibrary/isReportMode/
 │   │                               isAutomationMode/automationIndex. advanceAutomation()/retreatAutomation() clamp
@@ -173,7 +187,9 @@ Sources/
     │                               mouseDragged only calls onReorderPreview(translationX) (live grid reorder preview) — it never
     │                               starts a native drag session, so a photo can never be dragged out of the window/app while
     │                               organizing. In report mode, the same gesture never reorders: past the 4px threshold it goes
-    │                               straight to beginDraggingSession(...), exporting the file to another app via PhotoPasteboardWriter
+    │                               straight to beginDraggingSession(..., event: <current mouseDragged event>, ...) — starting from the live drag
+    │                               event (not the stale mouse-down) so the native session fires reliably on the first try —
+    │                               exporting the file to another app via PhotoPasteboardWriter
     │                               (NSPasteboardWriting: .fileURL, NSFilenamesPboardType, and the file's UTType). mouseUp commits
     │                               the reorder (onReorderCommit) when no external session started, or calls onClick on a plain
     │                               click. Ported/adapted from the old FastReport app's ExternalFileDragOverlay.swift.
@@ -208,8 +224,12 @@ Sources/
     │   │                           withAnimation(.spring(...)) and the cell applies a second .animation(value: isDragged) (on top
     │   │                           of the existing one keyed on currentTargetIndex) so pick-up/drop/settle are animated while the
     │   │                           live 1:1 pointer tracking during an active drag stays unanimated.
-    │   └── PhotoThumbnailView.swift  One photo cell: NSImage via ThumbnailCache, rounded background, overlaid with
-    │                               PhotoDragSourceView(isReportMode:) for the mode-gated reorder/export gesture.
+    │   ├── PhotoThumbnailView.swift  One photo cell: NSImage via ThumbnailCache, rounded background, overlaid with
+    │   │                           PhotoDragSourceView(isReportMode:) for the mode-gated reorder/export gesture. A plain
+    │   │                           click (no drag) calls onClick → AppState.previewPhoto, opening PhotoPreviewView.
+    │   └── PhotoPreviewView.swift  Simple modal photo viewer, presented as a .sheet from MainWindowView bound to
+    │                               AppState.previewPhoto (set when a thumbnail is clicked). Header with filename + close
+    │                               button (Esc via .cancelAction), image shown scaledToFit; closes by clearing previewPhoto.
     └── Settings/
         └── SettingsView.swift      SETTINGS SCREEN, presented as a sheet from ProjectListView (onClose sets
                                      state.isSettingsPresented = false). Own toolbar with an "xmark" close button. Body:

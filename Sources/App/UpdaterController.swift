@@ -53,4 +53,10 @@ final class UpdaterController {
         guard isAvailable else { return }
         updater.checkForUpdates()
     }
+
+    func checkForUpdatesAtStartup() {
+        guard isAvailable else { return }
+        userDriver.beginStartupCheck()
+        updater.checkForUpdates()
+    }
 }
