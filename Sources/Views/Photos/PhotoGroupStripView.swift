@@ -15,15 +15,30 @@ struct PhotoGroupStripView: View {
     private var cellWidth: CGFloat { thumbnailSize + spacing }
 
     var body: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: spacing) {
-                ForEach(Array(group.photos.enumerated()), id: \.element.id) { index, photo in
-                    cell(index: index, photo: photo)
+        if group.photos.isEmpty {
+            emptyPlaceholder
+        } else {
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: spacing) {
+                    ForEach(Array(group.photos.enumerated()), id: \.element.id) { index, photo in
+                        cell(index: index, photo: photo)
+                    }
                 }
+                .padding(.vertical, 6)
             }
-            .padding(.vertical, 6)
+            .scrollDisabled(isActiveGroup && dragState.draggedPhotoID != nil)
         }
-        .scrollDisabled(isActiveGroup && dragState.draggedPhotoID != nil)
+    }
+
+    private var emptyPlaceholder: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "tray")
+            Text("Vazio")
+        }
+        .font(.callout)
+        .foregroundStyle(.tertiary)
+        .frame(height: thumbnailSize)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var isActiveGroup: Bool {

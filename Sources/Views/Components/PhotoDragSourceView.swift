@@ -4,6 +4,7 @@ import UniformTypeIdentifiers
 
 struct PhotoDragSourceView: NSViewRepresentable {
     let url: URL
+    let thumbnailSize: CGFloat
     let isReportMode: Bool
     var onReorderPreview: (CGFloat) -> Void
     var onReorderCommit: (CGFloat) -> Void
@@ -13,6 +14,7 @@ struct PhotoDragSourceView: NSViewRepresentable {
     func makeCoordinator() -> Coordinator {
         Coordinator(
             url: url,
+            thumbnailSize: thumbnailSize,
             isReportMode: isReportMode,
             onReorderPreview: onReorderPreview,
             onReorderCommit: onReorderCommit,
@@ -29,6 +31,7 @@ struct PhotoDragSourceView: NSViewRepresentable {
 
     func updateNSView(_ nsView: PhotoDragNSView, context: Context) {
         context.coordinator.url = url
+        context.coordinator.thumbnailSize = thumbnailSize
         context.coordinator.isReportMode = isReportMode
         context.coordinator.onReorderPreview = onReorderPreview
         context.coordinator.onReorderCommit = onReorderCommit
@@ -38,6 +41,7 @@ struct PhotoDragSourceView: NSViewRepresentable {
 
     final class Coordinator {
         var url: URL
+        var thumbnailSize: CGFloat
         var isReportMode: Bool
         var onReorderPreview: (CGFloat) -> Void
         var onReorderCommit: (CGFloat) -> Void
@@ -46,6 +50,7 @@ struct PhotoDragSourceView: NSViewRepresentable {
 
         init(
             url: URL,
+            thumbnailSize: CGFloat,
             isReportMode: Bool,
             onReorderPreview: @escaping (CGFloat) -> Void,
             onReorderCommit: @escaping (CGFloat) -> Void,
@@ -53,6 +58,7 @@ struct PhotoDragSourceView: NSViewRepresentable {
             onClick: @escaping () -> Void
         ) {
             self.url = url
+            self.thumbnailSize = thumbnailSize
             self.isReportMode = isReportMode
             self.onReorderPreview = onReorderPreview
             self.onReorderCommit = onReorderCommit
@@ -67,10 +73,17 @@ struct PhotoDragSourceView: NSViewRepresentable {
 /// nativa, então nunca sai da janela/app). No modo de relatório, o gesto nunca
 /// reordena — ao exceder o limiar de movimento já inicia uma `NSDraggingSession`
 /// nativa que exporta o ficheiro para outra aplicação.
+///
+/// A imagem do arrasto é preparada no `mouseDown` (reutilizando o thumbnail que
+/// a grade já descodificou e tem em cache), nunca entre o limiar e o início da
+/// sessão. Assim `beginDraggingSession` dispara de imediato, no evento de arrasto
+/// "fresco", e o arrasto nunca falha na primeira tentativa por causa de uma
+/// descodificação síncrona de imagem a bloquear a main thread nesse instante.
 final class PhotoDragNSView: NSView, NSDraggingSource {
     weak var coordinator: PhotoDragSourceView.Coordinator?
-    private var mouseDownEvent: NSEvent?
     private var mouseDownScreenPoint: NSPoint = .zero
+    private var preparedDragImage: NSImage?
+    private var isTracking = false
     private var isDraggingOut = false
     private var didMove = false
     private var accessingFile = false
@@ -80,14 +93,20 @@ final class PhotoDragNSView: NSView, NSDraggingSource {
     override func acceptsFirstMouse(for event: NSEvent?) -> Bool { true }
 
     override func mouseDown(with event: NSEvent) {
-        mouseDownEvent = event
         mouseDownScreenPoint = NSEvent.mouseLocation
+        isTracking = true
         isDraggingOut = false
         didMove = false
+        preparedDragImage = nil
+        guard let coordinator, coordinator.isReportMode else { return }
+        preparedDragImage = ThumbnailCache.shared.image(
+            for: coordinator.url,
+            maxPixelSize: Int(coordinator.thumbnailSize * 2)
+        )
     }
 
     override func mouseDragged(with event: NSEvent) {
-        guard !isDraggingOut, let coordinator, mouseDownEvent != nil else { return }
+        guard isTracking, !isDraggingOut, let coordinator else { return }
         let current = NSEvent.mouseLocation
         let translationX = current.x - mouseDownScreenPoint.x
         let translationY = current.y - mouseDownScreenPoint.y
@@ -103,13 +122,14 @@ final class PhotoDragNSView: NSView, NSDraggingSource {
         accessingFile = coordinator.url.startAccessingSecurityScopedResource()
         let writer = PhotoPasteboardWriter(url: coordinator.url)
         let item = NSDraggingItem(pasteboardWriter: writer)
-        item.setDraggingFrame(bounds, contents: ThumbnailCache.shared.image(for: coordinator.url, maxPixelSize: 240))
+        item.setDraggingFrame(bounds, contents: preparedDragImage)
         beginDraggingSession(with: [item], event: event, source: self)
     }
 
     override func mouseUp(with event: NSEvent) {
         defer {
-            mouseDownEvent = nil
+            preparedDragImage = nil
+            isTracking = false
             isDraggingOut = false
         }
         guard let coordinator else { return }

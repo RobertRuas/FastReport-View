@@ -162,8 +162,9 @@ Sources/
 │   ├── ProjectMetadataFile.swift   Codable mapId + displayName read from a project folder's fastreport.json /
 │   │                               .fastreport.json (the same file the old FastReport app writes; extra legacy fields ignored).
 │   ├── ProjectPhotosLoader.swift   groups(for:) resolves the Project's map via MapCatalog and returns one PhotoGroup per
-│   │                               non-empty displaySlot folder, in map order — this is what makes a reopened project show
-│   │                               one row per directory, already organized, exactly like the old app's Revisão grid. Falls
+│   │                               displaySlot folder, in map order — EVERY directory, including empty ones (empty slots
+│   │                               still get a card, shown as a "Vazio" placeholder row) — so a reopened project shows one
+│   │                               row per directory, already organized, exactly like the old app's Revisão grid. Falls
 │   │                               back to a single flat group scanning the project folder if the mapId isn't in MapCatalog.
 │   ├── ThumbnailCache.swift        @MainActor NSCache<NSString, NSImage> wrapper. image(for:maxPixelSize:) downsizes via
 │   │                               ImageIO (CGImageSourceCreateThumbnailAtIndex), cached by path + pixel size.
@@ -183,13 +184,16 @@ Sources/
     │   │                           on press, shrinks (scaleEffect 0.80) and flashes a tinted rounded background (tint param,
     │   │                           default .primary). Gives visible click feedback.
     │   └── PhotoDragSourceView.swift  NSViewRepresentable (PhotoDragNSView: NSView, NSDraggingSource) overlaid on each thumbnail.
-    │                               Takes isReportMode (threaded down from AppState via ProjectView → ...). Outside report mode,
+    │                               Takes thumbnailSize + isReportMode (threaded down from AppState via ProjectView → ...). Outside report mode,
     │                               mouseDragged only calls onReorderPreview(translationX) (live grid reorder preview) — it never
     │                               starts a native drag session, so a photo can never be dragged out of the window/app while
     │                               organizing. In report mode, the same gesture never reorders: past the 4px threshold it goes
     │                               straight to beginDraggingSession(..., event: <current mouseDragged event>, ...) — starting from the live drag
-    │                               event (not the stale mouse-down) so the native session fires reliably on the first try —
-    │                               exporting the file to another app via PhotoPasteboardWriter
+    │                               event (not the stale mouse-down) so the native session fires reliably on the first try. The
+    │                               drag image is prepared in mouseDown (reusing the thumbnail the grid already decoded/cached at
+    │                               thumbnailSize*2), NEVER decoded between the threshold and beginDraggingSession — a synchronous
+    │                               ImageIO decode in that window used to stall the main thread and make the first drag silently
+    │                               fail on heavier/uncached photos. Exports the file to another app via PhotoPasteboardWriter
     │                               (NSPasteboardWriting: .fileURL, NSFilenamesPboardType, and the file's UTType). mouseUp commits
     │                               the reorder (onReorderCommit) when no external session started, or calls onClick on a plain
     │                               click. Ported/adapted from the old FastReport app's ExternalFileDragOverlay.swift.

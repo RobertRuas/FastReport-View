@@ -26,6 +26,7 @@ struct PhotoThumbnailView: View {
         .overlay(
             PhotoDragSourceView(
                 url: url,
+                thumbnailSize: size,
                 isReportMode: isReportMode,
                 onReorderPreview: onReorderPreview,
                 onReorderCommit: onReorderCommit,
